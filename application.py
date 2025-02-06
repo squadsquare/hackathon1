@@ -2,7 +2,7 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import os
-import urllib.request
+import requests
 
 # GitHub Model URL
 MODEL_URL = "https://github.com/squadsquare/hackathon1/raw/main/trained_plant_disease_model.keras"
@@ -11,23 +11,23 @@ MODEL_PATH = "trained_plant_disease_model.keras"
 # Function to download model from GitHub if missing
 def download_model():
     if not os.path.exists(MODEL_PATH):
-        with open(MODEL_PATH, "wb") as f:
-            try:
-                with urllib.request.urlopen(MODEL_URL) as response:
-                    f.write(response.read())
-                print("Model downloaded successfully.")
-            except Exception as e:
-                print(f"Failed to download model: {e}")
-        if not os.path.exists(MODEL_PATH):
+        try:
+            response = requests.get(MODEL_URL, stream=True)
+            response.raise_for_status()
+            with open(MODEL_PATH, "wb") as f:
+                f.write(response.content)
+            print("Model downloaded successfully.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Failed to download model: {e}")
             raise FileNotFoundError("Model download failed.")
-            
+
 # TensorFlow Model Prediction Function
 def model_prediction(test_image):
     download_model()  # Ensure model is downloaded before loading
     model = tf.keras.models.load_model(MODEL_PATH)
     image = tf.keras.preprocessing.image.load_img(test_image, target_size=(128, 128))
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
-    input_arr = np.array([input_arr])  # Convert single image to batch
+    input_arr = np.expand_dims(input_arr, axis=0)  # Convert single image to batch
     predictions = model.predict(input_arr)
     return np.argmax(predictions)  # Return index of max element
 
@@ -97,27 +97,15 @@ elif app_mode == "Disease Recognition":
                 'Tomato___healthy'
             ]
 
-            # Remedies
-            remedy_dict = {
+            disease = class_name[result_index]
+            remedy = {
                 'Apple___Apple_scab': 'Use fungicides like copper sulfate or sulfur-based products. Remove affected leaves.',
                 'Apple___Black_rot': 'Remove infected fruits, leaves, and stems. Apply fungicides if necessary.',
                 'Apple___Cedar_apple_rust': 'Remove affected leaves and fruits. Apply fungicides.',
-                'Apple___healthy': 'No action needed. Keep the plants well-watered.',
                 'Grape___Black_rot': 'Use copper-based fungicides and remove infected leaves and fruits.',
-                'Grape___Esca_(Black_Measles)': 'Prune infected vines, ensure good air circulation, and apply fungicides.',
                 'Orange___Haunglongbing_(Citrus_greening)': 'Use insecticides to control the vector (Asian citrus psyllid). Remove infected trees.',
-                'Peach___Bacterial_spot': 'Apply copper-based bactericides. Remove infected fruit and leaves.',
-                'Potato___Early_blight': 'Apply fungicides containing chlorothalonil or mancozeb. Rotate crops.',
-                'Potato___Late_blight': 'Apply fungicides like copper or mefenoxam. Remove infected plants.',
-                'Tomato___Bacterial_spot': 'Apply copper-based bactericides. Avoid overhead watering.',
-                'Tomato___Early_blight': 'Apply fungicides like chlorothalonil. Remove affected leaves.',
                 'Tomato___Late_blight': 'Apply fungicides containing copper or mefenoxam. Remove infected plants.',
-                'Tomato___Tomato_Yellow_Leaf_Curl_Virus': 'Remove infected plants. Insecticides can control the vector (whiteflies).',
-                'Tomato___Tomato_mosaic_virus': 'Remove and destroy infected plants. Use virus-free seeds.',
-            }
-
-            disease = class_name[result_index]
-            remedy = remedy_dict.get(disease, "No remedy information available.")
+            }.get(disease, "No remedy information available.")
 
             st.markdown(f"<p class='result'>**Prediction: {disease}**</p>", unsafe_allow_html=True)
             st.markdown(f"<p class='result'>**Remedy:** {remedy}</p>", unsafe_allow_html=True)
