@@ -48,7 +48,7 @@ remedy_dict = {
 
 # TensorFlow Model Prediction
 def predict_disease(image_path):
-    model = tf.keras.models.load_model("trained_plant_disease_model.keras")
+    model = tf.keras.models.load_model("https://github.com/squadsquare/hackathon1/blob/7d82e20ffc8b9b220515283574aad0d53e9299cf/trained_plant_disease_model.keras")
     image = tf.keras.preprocessing.image.load_img(image_path, target_size=(128, 128))
     image_array = tf.keras.preprocessing.image.img_to_array(image)
     image_batch = np.expand_dims(image_array, axis=0)  # Convert single image to batch
