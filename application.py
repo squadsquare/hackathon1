@@ -11,9 +11,16 @@ MODEL_PATH = "trained_plant_disease_model.keras"
 # Function to download model from GitHub if missing
 def download_model():
     if not os.path.exists(MODEL_PATH):
-        with st.spinner("Downloading model... This may take a moment."):
-            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
-
+        with open(MODEL_PATH, "wb") as f:
+            try:
+                with urllib.request.urlopen(MODEL_URL) as response:
+                    f.write(response.read())
+                print("Model downloaded successfully.")
+            except Exception as e:
+                print(f"Failed to download model: {e}")
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError("Model download failed.")
+            
 # TensorFlow Model Prediction Function
 def model_prediction(test_image):
     download_model()  # Ensure model is downloaded before loading
